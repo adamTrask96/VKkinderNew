@@ -1,12 +1,12 @@
 version_api = 5.131
 
-access_token_group = ''
-group_id = ''
+access_token_group = 'vk1.a.njafaSyxa251flE_MECwy3bQb7fFlHwKSYuV_gyEfhA5GYRdvenyYwwYo0xVtX9vefnQmhDZAzg85mipBJ2r8zxLgkUB4eAw-uTmu3-uraCFr5sP6yU5znMTNughpGxv8xnNEjl86iuIN-lZYeOMWPxLXZv8NYGR9PYrwqE4QAIiMIIIhc6LIcyCc_6xypMFCGmGMys9Mxn9ri97EI37_Q'
+group_id = '187153942'
 
-vk_access_token = ''
+vk_access_token = 'vk1.a.vuaYb-DKghAkknBZddy37w1-DaSreq6r8TdOWG3rmWJWtpthrtACD1ISIFTb-BK1OMWOXZ7aZUeFBuW8VfcVAsf_baxzyj5_J6T2q0y5_S9EzbSc9knDeJABIDIkAPEnZ5P2FABExmZk3jJM9GBedfF6xLDRJZn3kGP0fvR3gsxtbjKE2hIlc-d8lYXoiCWCvjodjYs7ngKD5SQbkX4mBg'
 vk_id_app = ''
 
-bd_user = ''
-bd_password = ''
-bd_database = ''
+bd_user = 'postgres'
+bd_password = 'YmkaTheBest'
+bd_database = 'TestBd'
 

@@ -1,20 +1,24 @@
 import vk_api
 import pandas as pd
+import datetime
+
 from config.config import vk_access_token, access_token_group, group_id
 
+
 def get_top_photos(owner_id):
-    '''Returns the top three photos for a user or group, sorted by number of likes.'''
+    '''Функция возвращает топ 3 фотографии юзера по лайкам'''
+
     photos_dict = {}
     vk = vk_api.VkApi(token=vk_access_token)
     try:
-        response = vk.method('photos.getAll',
-                              {'owner_id': owner_id,
-                               'extended': 1,
-                               'count': 200})
+        response = vk.method('photos.getAll', {'owner_id': owner_id,
+                                               'extended': 1,
+                                               'count': 200})
     except vk_api.ApiError as e:
-        print(f"Error while requesting photos from API: {e}")
+        date = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+        print(f"""{date} -> Ошибка возврата фотографии: {e}""")
         return None
-    
+
     for item in response['items']:
         try:
             m = 0
@@ -25,7 +29,8 @@ def get_top_photos(owner_id):
             photos_dict[item['id']] = {'url': url,
                                        'likes': item['likes']['count']}
         except KeyError as e:
-            print(f"Error while processing photo data: {e}")
+            date = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+            print(f"{date} -> Ошибка процесса выгрузки фото: {e}")
             continue
 
     df = pd.DataFrame(photos_dict)
@@ -36,13 +41,13 @@ def get_top_photos(owner_id):
 
 
 def get_messages_upload_server():
-    '''Returns the upload server URL for group messages.'''
+    '''Возвращает URL-адрес сервера загрузки групповых сообщений'''
     vk = vk_api.VkApi(token=access_token_group)
     try:
         response = vk.method('photos.getMessagesUploadServer',
-                              {'group_id': group_id})
+                             {'group_id': group_id})
     except vk_api.ApiError as e:
-        print(f"Error while requesting upload server from API: {e}")
+        date = datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')
+        print(f"{date} -> Ошибка выгрузки: {e}")
         return None
-    
     return response

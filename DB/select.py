@@ -1,3 +1,119 @@
+from DB.connect import create_connect
+from pprint import pprint
+"""
+ЛОГИКА ФАЙЛА!!!\n
+
+для просмотра данных, нам необходимо такие запросы как:\n
+1) запрос на нахождение пользователя в чс(не нравиться)\n
+2) запрос на нахождение пользователя в лайках(нравиться)\n
+3) запрос параметров поиска от пользователя\n
+4) запрос на нахождиение поискового пользователя\n
+"""
+
+# Запрос на нахождение пользователя в чс (значение 2)
+def select_user_in_black(main_user = 1111) -> list:
+    """
+    Функция для нахождения пользователя в списках чс\n
+    ::ВХОДНЫЕ ДАННЫЕ\n
+    main_user -> Главный пользователь\n
+    find_user -> Поисковой пользователь\n
+    ::ВЫХОДНЫЕ ДАННЫЕ\n
+    bool значения. Если пользователь находиться в списках, то возращается True ИНАЧЕ False\n
+    """
+    
+    db_connect = create_connect()
+    cursor = db_connect.cursor()
+    
+    cursor.execute("SELECT find_user FROM users WHERE main_user = %s AND likes = 2",(main_user,))
+    number = cursor.fetchall()
+
+    db_connect.close()
+    
+    return number
+
+# Запрос на нахождение пользователя в лайках (значение 1)
+def select_user_in_favorite(main_user = 1111) -> list:
+    """
+    Функция для нахождения пользователя в списках фаваритов\n
+    ::ВХОДНЫЕ ДАННЫЕ\n
+    main_user -> Главный пользователь\n
+    find_user -> Поисковой пользователь\n
+    ::ВЫХОДНЫЕ ДАННЫЕ\n
+    bool значения. Если пользователь находиться в списках, то возращается True ИНАЧЕ False\n
+    """
+    
+    db_connect = create_connect()
+    cursor = db_connect.cursor()
+    
+    cursor.execute("SELECT find_user FROM users WHERE main_user = %s AND likes = 1",(main_user,))
+    number = cursor.fetchall()
+
+    return number
+
+# Запрос параметров поиска от пользователя
+def select_params_of_user(number_id_main_user = 1111) -> list:
+    """
+    Функция для получения данных, которые нужны во время поиска\n
+    ::ВХОДНЫЕ ДАННЫЕ\n
+    Пока не известно(сделать на вход, данные пользователя вк)\n
+    ::ВЫХОДНЫЕ ДАННЫЕ\n
+    Список данных, в формате:\n
+        {
+        Возрост от: 29,\n
+        Возрос до: 30,\n
+        Пол: 1,\n
+        Город: Пермь/200,\n
+        Семейное положение: 1
+        }
+
+    """
+    
+    db_connect = create_connect()
+    cursor = db_connect.cursor()
+
+    cursor.execute("SELECT sex, age_from, age_to, city, relation FROM find_params WHERE main_user = %s",
+                   (number_id_main_user,))
+    number = cursor.fetchone()
+    
+    db_connect.close()
+
+    if number is None:
+        return None
+    
+    return [number[1],number[2],number[0],number[3],number[4]]
+
+# Запрос на пользователей, которые уже были
+def select_find_user_in_DB(main_user = 1111,find_user = 1110) -> bool:
+    """
+    Функция проверяет наличие поискового пользователя в бд.\n
+    Это исключает повторное появление анкеты у одного человека.\n
+    :::ВХОДНЫЕ ДАННЫЕ\n
+    main_user -> Главный пользователь\n
+    find_user -> Поисковой пользователь\n
+    :::ВЫХОДНЫЕ ДАННЫЕ\n
+    BOOL значение, если находиться пользователь в базе или нет
+    """
+
+    db_connect = create_connect()
+    cursor = db_connect.cursor()
+    
+    cursor.execute("SELECT likes FROM users WHERE main_user = %s AND find_user = %s;",
+                (main_user,find_user))
+    user = cursor.fetchone()
+    db_connect.close()
+    
+    if user is None:
+        return False
+    
+    return True
+
+if __name__ == "__main__":
+    print(select_user_in_black())
+    print(select_user_in_favorite())
+    pprint(select_params_of_user())
+    print(select_find_user_in_DB())
+
+"""
 # Выбор id в БД по id пользователя vk
 def select_nalichie_users_DB(connection, id_vk):
     value = f"SELECT bd_id,id FROM users WHERE id = %s;"
@@ -97,3 +213,4 @@ def select_one_user_for_view(connection, bd_id):
                     "photo_3_id":data[32],
                     "photo_3_likes":data[0]}
     return data_rezult
+    """

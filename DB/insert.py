@@ -1,72 +1,200 @@
-from DB.select import select_nalichie_users_DB
-
+from DB.connect import create_connect # DB.connect
+from psycopg2 import Error
 import datetime
+from functions import write_msg
+from app.users import users_get
+"""
+ЛОГИКА ФАЙЛА!!
+Файл необходим для добавления таких данных как:
+1) Новый юзер (добавляются его id, и параметры поиска)
+2) Добавление(обнавление данных для фавариторв)
+3) Добавление (обновление данных для блока)
+4) Добавление просмотренных пользователей (чтобы система не повторяла их)
+"""
 
+# Добавление нового пользователя и его параметров
+def insert_new_user_and_insert_params(user_id, text:str) -> bool:
+    """
+    Функция необходима для создания нового пользователя и внесения его параметров в базу\n
+    :::ВХОДНЫЕ ПАРАМЕТРЫ\n
+    cursor -> функциональное обращение к БД\n
+    text -> Текст регистрации нового пользователя\n
+        Формат текста: \n
+        -----------------------\n
+        Возраст от: 29\n
+        Возраст до: 36\n
+        Пол: М\n
+        Семейное положение: 1\n
+        -----------------------\n
+    :::ВЫХОДНЫЕ ДАННЫЕ\n
+    Добавлен новый пользователь с параметрами
+    """
 
-def add_users(connection, users_dict):
-    for key in users_dict.keys():
-        data = select_nalichie_users_DB(connection, key)
-        if data == []:
-            value = '''insert into users('''
-            columns = ''''''
-            values = ''''''
-            for key2 in users_dict[key].keys():
-                if type(users_dict[key][key2]) == str:
-                    if "'" in users_dict[key][key2]:
-                        users_dict[key][key2] = users_dict[key][key2].replace("'",'"')
-                columns += f'''"{key2}",'''
-                values += f"""'{users_dict[key][key2]}',"""
-            columns = columns[:-1]
-            values = values[:-1]
+    try:
+        params = {}
+        new_text = text.replace('возраст от:','').strip()
+        text = new_text.replace('возраст до:','').strip()
+        new_text = text.replace('пол:','').strip()
+        text = new_text.replace('семейное положение:','').strip()
+        text = text.split("\n")
+        user_info = users_get(user_id)
+
+        if 0 > int(text[0].strip()) or int(text[0].strip()) > 100:
+            raise ValueError("Введено не верное начальное значение возроста! \nПовторите попытку")       
+        elif 0 > int(text[1].strip()) or int(text[0].strip()) > 100:
+            raise ValueError("Введено не верное конечное значение возроста! \nПовторите попытку")  
+        elif text[2].strip() not in ['1','2']:
+            raise ValueError("Введено не верное значение пола! \nПовторите попытку")        
+        elif 8 < int(text[3].strip()) or int(text[3].strip()) < 0:
+            raise ValueError("Введено не верное значение семейного положения! \nПовторите попытку")
+        
+        params["Возрост от"] = int(text[0].strip())
+        params["Возрост до"] = int(text[1].strip())
+        params["Пол"] = int(text[2].strip())
+        params["Семейное положение"] = int(text[3].strip())
+        
+        db_connect = create_connect()
+        cursor = db_connect.cursor()
+
+        try:
+            cursor.execute("INSERT INTO find_params VALUES(%s,%s,%s,%s,%s,%s)",
+                       (user_id,params["Пол"],params["Возрост от"],params["Возрост до"],'110',params["Семейное положение"]))
+            db_connect.commit()
+            db_connect.close()
+            return True
+
+        except Error as error:
+            # Сообщение  в логи
+            print(f"""{datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')}: Произошла ошибка добавления нового пользователя!
+Текст ошибки: {error.pgerror}
+Код ошбики: {error.pgcode}""")
             
-            value = value + columns + ') values (' + values + ');'
-            connection.execute(value)
-            print('Пользователь добавлен в БД')
-        else:
-            print('Пользователь уже есть в БД')
-    return 
+            # Сообщение пользователю
+            write_msg(user_id = user_id,
+                      message = "Вовремя добавления произошла ошибка, пожалуйста повторите попытку позднее!")
+            
+            db_connect.close()
+            return False
+        
+    except ValueError as error:
+        # Сообщение пользователю
+        write_msg(user_id = user_id,
+                  message = error.args)
+        return False 
 
-def add_users_and_search_params(connection, users_dict, sex, age_from, age_to, city, status):
-    for key in users_dict.keys():
-        data = select_nalichie_users_DB(connection, key)
-        if data == []:
-            value = '''insert into users('''
-            columns = ''''''
-            values = ''''''
-            for key2 in users_dict[key].keys():
-                if type(users_dict[key][key2]) == str:
-                    if "'" in users_dict[key][key2]:
-                        users_dict[key][key2] = users_dict[key][key2].replace("'",'"')
-                columns += f'''"{key2}",'''
-                values += f"""'{users_dict[key][key2]}',"""
-            columns = columns[:-1]
-            values = values[:-1]
-            value = value + columns + ') values (' + values + ') RETURNING bd_id;'
-            n = connection.execute(value).fetchone()
-            add_search_params(connection, n[0], sex, age_from, age_to, city, status, key)
-            print('Пользователь добавлен в БД')
-        else:
-            print('Пользователь уже есть в БД')
+# Добавление лайков
+def insert_favorite_user(main_user = 1111,find_user = 11102) -> bool:
+    """
+    Функция реализует лайки пользователю ( в дальнейшем, человек сможет их просматривать)\n
+    :::ВХОДНЫЕ ДАННЫЕ\n
+    main_user -> id главного пользователя\n
+    find_user -> id поискового юзера\n
+    :::ВЫХОДНЫЕ ДАННЫЕ\n
+    Добавление лайка пользователю 
+    """
 
-def add_search_params(connection, bd_id, sex, age_from, age_to, city, status,key):
-    connection.execute("""INSERT INTO search_params(param_sex, param_age_from, param_age_to, param_city, param_status, bd_id, id_user)
-                VALUES (%s,%s,%s,%s,%s,%s,%s)""",(str(sex),str(age_from),str(age_to),str(city),str(status),str(bd_id),str(bd_id)))
-    print('Параметры поиска добавлены в БД')
+    db_connect = create_connect()
+    cursor = db_connect.cursor()
 
-def add_favorites_users(connection, user_id, id_in_list):
     try:
-        value = f"INSERT INTO favorites_users (id_user, fav_user_id) VALUES ({user_id}, {id_in_list});"
-        connection.execute(value)
-        print('Пользователь добавлен в Избранное')
-        return
-    except:
-        return "Пользователь уже есть в избранном"
+        cursor.execute("INSERT INTO users VALUES(%s,%s,1)",(main_user,find_user))
+        db_connect.commit()
+        db_connect.close()
 
-def add_black_list(connection, user_id, id_in_list):
+        write_msg(user_id = main_user,
+                      message = "Лайк поставлен! Идем дальше...")
+        
+        return True
+    
+    except Error as error:
+        # Сообщение в логи
+        print(f"""{datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')}: Произошла ошибка добавления нового пользователя!
+Текст ошибки: {error.pgerror}
+Код ошбики: {error.pgcode}""")
+
+        # Сообщение пользователю 
+        write_msg(user_id = main_user,
+                      message = "Вовремя добавления произошла ошибка, лайк не поставлен!")
+        
+        db_connect.close()
+        return False
+
+# Добавление дизлайков
+def insert_Dislike_user(main_user = 1111,find_user = 11102) -> bool:
+    """
+    Функция реализует лайки пользователю ( в дальнейшем, человек сможет их просматривать)\n
+    :::ВХОДНЫЕ ДАННЫЕ\n
+    main_user -> id главного пользователя\n
+    find_user -> id поискового юзера\n
+    :::ВЫХОДНЫЕ ДАННЫЕ\n
+    Добавление лайка пользователю 
+    """
+
+    db_connect = create_connect()
+    cursor = db_connect.cursor()
+    
     try:
-        value = f"INSERT INTO black_list (id_user, bl_list_id) VALUES ({user_id}, {id_in_list});"
-        connection.execute(value)
-        print('Пользователь добавлен в черный список')
-        return
-    except:
-        return "Пользователь уже есть в черном списке"
+        cursor.execute("INSERT INTO users VALUES(%s,%s,2)",(main_user,find_user))
+        db_connect.commit()
+        db_connect.close()
+
+        write_msg(user_id = main_user,
+                      message = "ДизЛайк поставлен! Идем дальше...")
+        
+        return True
+    
+    except Error as error:
+        # Сообщение в логи
+        print(f"""{datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')}: Произошла ошибка добавления нового пользователя!
+Текст ошибки: {error.pgerror}
+Код ошбики: {error.pgcode}""")
+
+        # Сообщение пользователю 
+        write_msg(user_id = main_user,
+                      message = "Вовремя добавления произошла ошибка, дизлайк не поставлен!")
+        
+        db_connect.close()
+        return False
+    
+# Простой просмотре пользователей
+def insert_watched_user(main_user = 1111,find_user = 11102) -> bool:
+    """
+    Функция реализует добавление просмотренного пользователя\n
+    :::ВХОДНЫЕ ДАННЫЕ\n
+    main_user -> id главного пользователя\n
+    find_user -> id поискового юзера\n
+    :::ВЫХОДНЫЕ ДАННЫЕ\n
+    TRUE -> Пользователь успешно был добавлен в систему
+    FLASE -> Произошла какая-то ошибка
+    """
+
+    db_connect = create_connect()
+    cursor = db_connect.cursor()
+    
+    try:
+        cursor.execute("INSERT INTO users VALUES(%s,%s,0)",(main_user,find_user))
+        db_connect.commit()
+        db_connect.close()
+        return True
+
+    except Error as error:
+        # Сообщение в логи
+        print(f"""{datetime.datetime.now().strftime('%m/%d/%y %H:%M:%S')}: Произошла ошибка добавления нового пользователя!
+Текст ошибки: {error.pgerror}
+Код ошбики: {error.pgcode}""")
+
+        # Сообщение пользователю 
+        write_msg(user_id = main_user,
+                      message = "Вовремя добавления произошла ошибка, пользователь не был добавлен в просмотренные!")
+        
+        db_connect.close()
+        return True
+
+if __name__ == "__main__":
+    insert_new_user_and_insert_params(text="""Возрост от: 5
+        Возрос до: 60
+        Пол: 1
+        Семейное положение: 0""")
+    insert_favorite_user()
+    insert_Dislike_user()
+    insert_watched_user()

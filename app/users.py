@@ -1,9 +1,12 @@
-from config.imports import *
+from config.config import vk_access_token
+
+import vk_api
+
 
 def users_get(ids):
-    ''' 
+    """
     Возвращает расширенную информацию о пользователях.
-    '''
+    """
     all_persons = {}
     link_profile = 'https://vk.com/id'
     vk = vk_api.VkApi(token=vk_access_token)
@@ -39,7 +42,7 @@ def users_search(sex, age_at, age_to, city, status):
                                               'age_to': age_to,
                                               'has_photo': 1,
                                               'count': 50,
-                                              'fields': 'verified, sex, bdate, city, home_town, has_photo, online, domain, nickname, screen_name, maiden_name, friend_status',
+                                              'online': 1,
                                               'city': city})
         if 'items' not in response:
             raise ValueError('Response does not contain "items" key')

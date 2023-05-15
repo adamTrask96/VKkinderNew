@@ -1,85 +1,91 @@
-
-def create_table_users(connection):
-    value = """CREATE TABLE IF NOT EXISTS users (
-                bd_id serial PRIMARY KEY,
-                age int,
-                interests text,
-                online_app int,
-                online_mobile int,
-                id INTEGER NULL,
-                track_code text,
-                maiden_name text,
-                nickname text,
-                domain text,
-                bdate text,
-                city_id int,
-                city_title text,
-                has_photo int,
-                home_town text,
-                sex int,
-                friend_status int,
-                first_name text,
-                last_name text,
-                online int,
-                screen_name text,
-                verified int,
-                can_access_closed boolean,
-                is_closed boolean,
-                link_pro text,
-                photo_1_url text,
-                photo_1_id int,
-                photo_1_likes int,
-                photo_2_url text,
-                photo_2_id int,
-                photo_2_likes int,
-                photo_3_url text,
-                photo_3_id int,
-                photo_3_likes int
-
-             );"""
-    connection.execute(value)
+from DB.connect import create_connect
 
 
-def create_table_search_params(connection):
-    value = """CREATE TABLE IF NOT EXISTS search_params (
-                bd_id serial PRIMARY KEY,
-                param_sex INTEGER NULL,
-                param_city INTEGER NULL,
-                param_age_from INTEGER NULL,
-                param_age_to INTEGER NULL,
-                param_status INTEGER NULL,
-                id_user integer null,
-                FOREIGN KEY (id_user) REFERENCES users (bd_id) ON DELETE CASCADE
-             );"""
-    connection.execute(value)
+"""
+Файл для создания нескольких таблиц для получения уникальности пользователя и создание нового пользователя! \n
 
+ЛОГИКА!!!!\n
+в базе данных должно быть только уникальные данные!!! Больше ничего!\n
 
-def create_table_favorites_users(connection):
-    value = """CREATE TABLE IF NOT EXISTS favorites_users (
-                 fav_user_id integer references users(bd_id),
-                 id_user integer references users(bd_id),
-                 constraint favorites_users_id primary key (fav_user_id, id_user)
-             );"""
-    connection.execute(value)
+Таблицы:: \n
+1) users \n
+    Колонки:\n
+    1.1 main_user -> Главный пользователь, пользователь, который ищет;\n
+    1.2 find_user -> Пользователь, которого нашел main_user. \n
+    1.3 likes     -> Нравиться\Не нравиться \n
+    Логике:\n
+    При поиске, если не указывать кто искал и кого, система может не верно понять поиск, а именно: \n
+    1) При поиске людей из одного и того-же города по одним и тем же параметрам, система 1 раз добавит пользователя,\n
+    следовательно, какой-то человек, который ищет в боте, не сможет увидеть уже добавленнго пользователя. \n
+    2) Так будет проще в дальнейшем производить манипуляции, а именно: \n
+        2.2 Можно сократить количество таблиц до минимума, добавив только две колонки: likes, где данные будут 1 или 0 в соответсвии: 
+            2.2.1) 1 -> Человек понравился;\n
+            2.2.2) 2 -> Человек не понравился. \n
 
+2) find_params\n
+    Колонки: \n
+    1.1 main_user -> Главый пользователь, по его id мы будем искать данные для поиска PRAMERY KEY!!!!\n
+    1.2 sex -> Параметр пола:\n
+        1.2.1) 1 -> Женский;\n
+        1.2.2) 2 -> Мужской.\n
+    1.3 age_from -> Параметр возвроста начиная от.\n
+    1.4 age_to -> Параметр возроста заканчивая числом.\n
+    1.5 city -> Параметр города. \n
+    1.6 relation -> Семейное положение:\n
+        1.6.1) 1 -> не женат/не замужем;\n
+        1.6.2) 2 -> есть друг/есть подруга;\n
+        1.6.3) 3 -> помолвлен/помолвлена;\n
+        1.6.4) 4 -> женат/замужем;\n
+        1.6.5) 5 -> всё сложно;\n
+        1.6.6) 6 -> в активном поиске;\n
+        1.6.7) 7 -> влюблён/влюблена;\n
+        1.6.8) 8 -> в гражданском браке;\n
+        1.6.9) 0 -> не указано.\n
+    
+"""
 
-def create_table_black_list(connection):
-    value = """CREATE TABLE IF NOT EXISTS black_list (
-                 bl_list_id integer references users(bd_id),
-                 id_user integer references users(bd_id),
-                 constraint black_list_id primary key (bl_list_id, id_user)
-             );"""
-    connection.execute(value)
+# Создание таблицы юзеров
+def create_users_table(cursor):
+    """
+    Функция на создание таблицы пользователей.\n
+    ::ВХОДНЫЕ ПАРАМЕТРЫ\n
+    cursor -> функциональное обращение к БД\n
+    ::ВЫХОДНЫЕ ПАРАМЕТРЫ\n
+    Отсутсвуют\n
+    """
+    cursor.execute("""CREATE TABLE IF NOT EXISTS users (               
+                    main_user INT,
+                    find_user INT,
+                    likes INT
+                );""")
 
+# Создание таблицы параметов пользователя     
+def create_params_for_find_table(cursor):
+    """
+    Функция на создание таблицы параметров.\n
+    ::ВХОДНЫЕ ПАРАМЕТРЫ\n
+    cursor -> функциональное обращение к БД\n
+    ::ВЫХОДНЫЕ ПАРАМЕТРЫ\n
+    Отсутсвуют\n
+    """
+    cursor.execute( """CREATE TABLE IF NOT EXISTS find_params (               
+                main_user INT PRIMARY KEY,
+                sex INT,
+                age_from INT,
+                age_to INT,
+                city TEXT,
+                relation INT
+             );""")
+     
+# Главная функция
+def main():
+    connect_db = create_connect()
+    cursor = connect_db.cursor()
+    create_params_for_find_table(cursor)
+    create_users_table(cursor)
+    connect_db.commit()
+    connect_db.close()
 
-def create_all_tables(connection):
-    create_table_users(connection)
-    create_table_search_params(connection)
-    create_table_favorites_users(connection)
-    create_table_black_list(connection)
-
-
-def creat_all_tables(connection):
-    conn = connection
-    create_all_tables(conn)
-    conn.close()
+if __name__ == "__main__":
+    main()
+    
